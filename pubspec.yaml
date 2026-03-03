@@ -59,6 +59,9 @@ dependencies:
   image: ^4.2.0
   flutter_tts: ^4.2.5
 
+  # Custom loading animations
+  loading_animation_widget: ^1.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

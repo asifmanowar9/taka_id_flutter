@@ -18,7 +18,7 @@ class DetailScreen extends ConsumerWidget {
     final isHigh = record.confidence >= 0.75;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF4F9F6),
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(context, ref),
@@ -187,7 +187,7 @@ class DetailScreen extends ConsumerWidget {
     return SliverAppBar(
       expandedHeight: 280,
       pinned: true,
-      backgroundColor: const Color(0xFF006A4E),
+      backgroundColor: const Color(0xFF004D38),
       foregroundColor: Colors.white,
       actions: [
         IconButton(

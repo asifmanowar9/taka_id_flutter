@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../providers/classifier_provider.dart';
 import '../providers/history_provider.dart';
+import '../widgets/app_loader.dart';
 import '../widgets/confidence_bar.dart';
 import 'history_screen.dart';
 
@@ -108,7 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final classifierAsync = ref.watch(classifierProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF4F9F6),
       appBar: _AppBar(isLoading: classifierAsync.isLoading),
       body: classifierAsync.when(
         loading: () => const _ModelLoadingView(),
@@ -148,17 +149,49 @@ class _AppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: const Color(0xFF006A4E),
+      backgroundColor: Colors.transparent,
       foregroundColor: Colors.white,
-      elevation: 0,
-      title: const Text(
-        'TakaID',
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+      elevation: 6,
+      shadowColor: const Color(0xFF006A4E).withAlpha(80),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF00875A), Color(0xFF004D38)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(35),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.currency_exchange_rounded,
+              color: Colors.white,
+              size: 17,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'TakaID',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 22,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
       actions: [
         if (isLoading)
           const Padding(
-            padding: EdgeInsets.only(right: 8),
+            padding: EdgeInsets.only(right: 12),
             child: SizedBox(
               width: 20,
               height: 20,
@@ -169,7 +202,7 @@ class _AppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
         IconButton(
-          icon: const Icon(Icons.history),
+          icon: const Icon(Icons.history_rounded),
           tooltip: 'Classification history',
           onPressed: () => Navigator.push(
             context,
@@ -188,19 +221,7 @@ class _ModelLoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: Color(0xFF006A4E)),
-          SizedBox(height: 16),
-          Text(
-            'Loading classifier modelâ€¦',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
+    return const AppLoader(message: 'Loading classifier model\u2026');
   }
 }
 
@@ -260,17 +281,8 @@ class _BodyContent extends StatelessWidget {
             const SizedBox(height: 16),
             if (state.isClassifying)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFF006A4E)),
-                    SizedBox(height: 12),
-                    Text(
-                      'Identifying banknote…',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: AppLoader(message: 'Identifying banknote\u2026'),
               ),
             if (!state.isClassifying && state.topResult != null) ...[
               _TopResultCard(state: state, onReplay: onReplay),
@@ -296,41 +308,133 @@ class _ImageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: image != null
-            ? GestureDetector(
-                onTap: onTap,
-                child: Image.file(image!, fit: BoxFit.cover),
-              )
-            : InkWell(
-                onTap: onTap,
-                child: Container(
-                  color: const Color(0xFFE8F5E9),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF006A4E).withAlpha(50),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: AspectRatio(
+          aspectRatio: 4 / 3,
+          child: image != null
+              ? GestureDetector(
+                  onTap: onTap,
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Icon(
-                        Icons.add_photo_alternate_outlined,
-                        size: 64,
-                        color: Colors.green.shade300,
+                      Image.file(image!, fit: BoxFit.cover),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withAlpha(140),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Tap to open camera',
-                        style: TextStyle(
-                          color: Colors.green.shade600,
-                          fontSize: 15,
+                      Positioned(
+                        bottom: 10,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(110),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Tap to retake',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
+                )
+              : InkWell(
+                  onTap: onTap,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF006A4E), Color(0xFF004D38)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(20),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withAlpha(60),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            size: 52,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        const Text(
+                          'Tap to scan a banknote',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Point camera at any Bangladeshi note',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(180),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -349,52 +453,74 @@ class _TopResultCard extends StatelessWidget {
 
     // ── Unknown / not a banknote ──────────────────────────────────────────
     if (result.isUnknown) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Colors.red.shade50,
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFB71C1C), Color(0xFF7F0000)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.red.withAlpha(80),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade100,
+                  color: Colors.white.withAlpha(20),
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withAlpha(60),
+                    width: 1.5,
+                  ),
                 ),
-                child: Icon(
-                  Icons.do_not_disturb_alt_outlined,
-                  color: Colors.red.shade700,
+                child: const Icon(
+                  Icons.block_rounded,
+                  color: Colors.white,
                   size: 28,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Not a Banknote',
                       style: TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'No Bangladeshi banknote was detected.\nTry a clearer, well-lit image.',
+                      'No note detected — try a clearer image.',
                       style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.red.shade400,
+                        fontSize: 12,
+                        color: Colors.white.withAlpha(200),
                       ),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.volume_up_rounded, color: Colors.red.shade400),
+                icon: Icon(
+                  Icons.volume_up_rounded,
+                  color: Colors.white.withAlpha(200),
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withAlpha(25),
+                ),
                 tooltip: 'Replay voice',
                 onPressed: onReplay,
               ),
@@ -407,90 +533,119 @@ class _TopResultCard extends StatelessWidget {
     // ── Normal result ─────────────────────────────────────────────────────
     final isHigh = result.confidence >= 0.75;
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF006A4E), Color(0xFF004D38)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF006A4E).withAlpha(90),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF006A4E).withAlpha(20),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    color: Color(0xFF006A4E),
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Identified as',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                      Text(
-                        result.label,
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF006A4E),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 6,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(30),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'IDENTIFIED',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
                     color: isHigh
-                        ? Colors.green.shade100
-                        : Colors.orange.shade100,
+                        ? Colors.greenAccent.withAlpha(45)
+                        : Colors.orangeAccent.withAlpha(45),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isHigh
+                          ? Colors.greenAccent.withAlpha(130)
+                          : Colors.orangeAccent.withAlpha(130),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
                     result.confidencePercent,
                     style: TextStyle(
                       color: isHigh
-                          ? Colors.green.shade700
-                          : Colors.orange.shade700,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                          ? Colors.greenAccent.shade200
+                          : Colors.orangeAccent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
                     ),
                   ),
                 ),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(
                     Icons.volume_up_rounded,
-                    color: Color(0xFF006A4E),
+                    color: Colors.white,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withAlpha(25),
                   ),
                   tooltip: 'Replay voice',
                   onPressed: onReplay,
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            ConfidenceBar(
-              label: result.label,
-              confidence: result.confidence,
-              isTop: true,
+            const SizedBox(height: 14),
+            Text(
+              result.label,
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: -0.5,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: result.confidence,
+                minHeight: 7,
+                backgroundColor: Colors.white.withAlpha(30),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isHigh ? Colors.greenAccent.shade200 : Colors.orangeAccent,
+                ),
+              ),
             ),
             if (!isHigh) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               const Text(
-                '⚠️  Low confidence — try a clearer image',
-                style: TextStyle(color: Colors.orange, fontSize: 12),
+                'Low confidence — try a clearer image',
+                style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
               ),
             ],
           ],
@@ -506,23 +661,46 @@ class _OtherResultsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDDEDE8), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Other possibilities',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.black54,
-                fontSize: 13,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF006A4E),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Other possibilities',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF006A4E),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             ...state.topK
                 .skip(1)
                 .map(
@@ -550,28 +728,61 @@ class _HintChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 24),
+      padding: const EdgeInsets.only(top: 28),
       child: Column(
         children: [
-          Text(
-            'Supports all Bangladeshi banknotes',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 28,
+                height: 1,
+                color: const Color(0xFF006A4E).withAlpha(80),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Supported denominations',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 1,
+                color: const Color(0xFF006A4E).withAlpha(80),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 6,
-            runSpacing: 4,
+            runSpacing: 6,
             children: labels
                 .map(
-                  (l) => Chip(
-                    label: Text(l, style: const TextStyle(fontSize: 11)),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: const Color(0xFFE8F5E9),
-                    side: const BorderSide(
-                      color: Color(0xFF006A4E),
-                      width: 0.5,
+                  (l) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF006A4E).withAlpha(80),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      l,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF006A4E),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 )
@@ -591,65 +802,83 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: _ActionButton(
-                icon: Icons.photo_library_outlined,
-                label: 'Gallery',
-                onPressed: () => onPickImage(ImageSource.gallery),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ActionButton(
-                icon: Icons.camera_alt_outlined,
-                label: 'Camera',
-                primary: true,
-                onPressed: () => onPickImage(ImageSource.camera),
-              ),
-            ),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(18),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-  final bool primary;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    this.primary = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Text(label, style: const TextStyle(fontSize: 15)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primary
-            ? const Color(0xFF006A4E)
-            : const Color(0xFFE8F5E9),
-        foregroundColor: primary ? Colors.white : const Color(0xFF006A4E),
-        elevation: primary ? 3 : 1,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: primary
-              ? BorderSide.none
-              : const BorderSide(color: Color(0xFF006A4E), width: 0.8),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 56,
+                height: 56,
+                child: OutlinedButton(
+                  onPressed: () => onPickImage(ImageSource.gallery),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF006A4E),
+                    side: const BorderSide(
+                      color: Color(0xFF006A4E),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: const Icon(Icons.photo_library_rounded, size: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF00875A), Color(0xFF004D38)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF006A4E).withAlpha(90),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: () => onPickImage(ImageSource.camera),
+                    icon: const Icon(Icons.camera_alt_rounded),
+                    label: const Text(
+                      'Camera',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

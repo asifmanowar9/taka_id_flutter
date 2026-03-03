@@ -4,77 +4,104 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../providers/auth_provider.dart';
 import '../providers/history_provider.dart';
+import '../widgets/app_loader.dart';
 import '../widgets/history_tile.dart';
 import 'auth_screen.dart';
 import 'detail_screen.dart';
 
-class HistoryScreen extends ConsumerWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  bool _isRefreshing = false;
+
+  Future<void> _refresh() async {
+    setState(() => _isRefreshing = true);
+    await ref.read(historyProvider.notifier).refresh();
+    if (mounted) setState(() => _isRefreshing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Gate: unauthenticated users see a login prompt instead of the list.
     if (ref.watch(currentUserProvider) == null) return const _AuthPrompt();
 
     final historyAsync = ref.watch(historyProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF4F9F6),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF006A4E),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        elevation: 6,
+        shadowColor: const Color(0xFF006A4E).withAlpha(80),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF00875A), Color(0xFF004D38)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: const Text(
           'History',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             tooltip: 'Sign out',
             onPressed: () => Supabase.instance.client.auth.signOut(),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
-            onPressed: () => ref.read(historyProvider.notifier).refresh(),
+            onPressed: _isRefreshing ? null : _refresh,
           ),
         ],
       ),
-      body: historyAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF006A4E)),
-        ),
-        error: (e, _) => _ErrorView(
-          error: e.toString(),
-          onRetry: () => ref.read(historyProvider.notifier).refresh(),
-        ),
-        data: (records) {
-          if (records.isEmpty) return const _EmptyView();
+      body: Stack(
+        children: [
+          historyAsync.when(
+            loading: () => const AppLoader(message: 'Loading history\u2026'),
+            error: (e, _) => _ErrorView(error: e.toString(), onRetry: _refresh),
+            data: (records) {
+              if (records.isEmpty) return const _EmptyView();
 
-          return RefreshIndicator(
-            color: const Color(0xFF006A4E),
-            onRefresh: () => ref.read(historyProvider.notifier).refresh(),
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: records.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, indent: 80),
-              itemBuilder: (context, index) {
-                final record = records[index];
-                return HistoryTile(
-                  record: record,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DetailScreen(record: record),
-                    ),
-                  ),
-                  onDelete: () =>
-                      ref.read(historyProvider.notifier).deleteRecord(record),
-                );
-              },
-            ),
-          );
-        },
+              return RefreshIndicator(
+                color: const Color(0xFF006A4E),
+                onRefresh: _refresh,
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: records.length,
+                  itemBuilder: (context, index) {
+                    final record = records[index];
+                    return HistoryTile(
+                      record: record,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetailScreen(record: record),
+                        ),
+                      ),
+                      onDelete: () => ref
+                          .read(historyProvider.notifier)
+                          .deleteRecord(record),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          // Overlay loader shown during manual refresh
+          if (_isRefreshing)
+            const AppLoader(message: 'Refreshing\u2026', overlay: true),
+        ],
       ),
     );
   }
@@ -91,11 +118,26 @@ class _EmptyView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF006A4E).withAlpha(12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.receipt_long_rounded,
+              size: 56,
+              color: const Color(0xFF006A4E).withAlpha(100),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
             'No scans yet',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 18),
+            style: TextStyle(
+              color: Color(0xFF006A4E),
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -166,13 +208,24 @@ class _AuthPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF4F9F6),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF006A4E),
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        elevation: 6,
+        shadowColor: const Color(0xFF006A4E).withAlpha(80),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF00875A), Color(0xFF004D38)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: const Text(
           'History',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
         ),
       ),
       body: Center(

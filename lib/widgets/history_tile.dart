@@ -28,42 +28,104 @@ class HistoryTile extends StatelessWidget {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: Colors.red.shade400,
-        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+        padding: const EdgeInsets.only(right: 24),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.red.shade600,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.delete_rounded, color: Colors.white, size: 26),
+            SizedBox(height: 4),
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
       onDismissed: (_) => onDelete(),
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: _Thumbnail(record: record),
-        title: Text(
-          record.label,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-        ),
-        subtitle: Text(
-          DateFormat('MMM d, yyyy  h:mm a').format(record.timestamp),
-          style: const TextStyle(fontSize: 12, color: Colors.black45),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ConfidenceBadge(
-              confidence: record.confidence,
-              label: record.confidencePercent,
-            ),
-            const SizedBox(width: 4),
-            if (!record.isSynced)
-              const Tooltip(
-                message: 'Not synced with server',
-                child: Icon(
-                  Icons.cloud_off_outlined,
-                  size: 16,
-                  color: Colors.orange,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  _Thumbnail(record: record),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          record.label,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: Color(0xFF1A1A1A),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat(
+                            'MMM d, yyyy  h:mm a',
+                          ).format(record.timestamp),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _ConfidenceBadge(
+                        confidence: record.confidence,
+                        label: record.confidencePercent,
+                      ),
+                      const SizedBox(height: 6),
+                      if (!record.isSynced)
+                        const Icon(
+                          Icons.cloud_off_outlined,
+                          size: 14,
+                          color: Colors.orange,
+                        )
+                      else
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: Colors.black26,
+                        ),
+                    ],
+                  ),
+                ],
               ),
-            const Icon(Icons.chevron_right, color: Colors.black26),
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -85,16 +147,17 @@ class _ConfidenceBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: _color.withAlpha(30),
+        color: _color.withAlpha(25),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _color.withAlpha(80), width: 1),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: _color,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800,
           fontSize: 12,
         ),
       ),
@@ -127,8 +190,8 @@ class _Thumbnail extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(width: 56, height: 56, child: child),
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(width: 64, height: 64, child: child),
     );
   }
 }
@@ -138,7 +201,7 @@ class _PlaceholderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    color: const Color(0xFFE8F5E9),
-    child: const Icon(Icons.image_outlined, color: Colors.green, size: 28),
+    color: const Color(0xFFE8F5EE),
+    child: const Icon(Icons.image_outlined, color: Color(0xFF006A4E), size: 28),
   );
 }
