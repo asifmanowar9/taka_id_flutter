@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../providers/classifier_provider.dart';
@@ -22,6 +23,41 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _picker = ImagePicker();
+  final _tts = FlutterTts();
+
+  /// Maps English model labels → Bengali speech text.
+  static const _banglaLabels = {
+    '2 Taka': 'দুই টাকা',
+    '5 Taka': 'পাঁচ টাকা',
+    '10 Taka': 'দশ টাকা',
+    '20 Taka': 'বিশ টাকা',
+    '50 Taka': 'পঞ্চাশ টাকা',
+    '100 Taka': 'একশো টাকা',
+    '200 Taka': 'দুইশো টাকা',
+    '500 Taka': 'পাঁচশো টাকা',
+    '1000 Taka': 'এক হাজার টাকা',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _tts.setLanguage('bn-BD');
+    _tts.setSpeechRate(0.45);
+  }
+
+  @override
+  void dispose() {
+    _tts.stop();
+    super.dispose();
+  }
+
+  Future<void> _speak(String label, {bool isUnknown = false}) async {
+    final text = isUnknown
+        ? 'এটি কোনো বাংলাদেশি টাকা নয়'
+        : (_banglaLabels[label] ?? label);
+    await _tts.stop();
+    await _tts.speak(text);
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final picked = await _picker.pickImage(
@@ -37,6 +73,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .classify(file);
 
     if (!mounted || topResult == null) return;
+
+    // Speak the result in Bengali.
+    _speak(topResult.label, isUnknown: topResult.isUnknown);
+
+    // Don't save non-banknote results to history.
+    if (topResult.isUnknown) return;
 
     // Save to backend (history provider handles optimistic update).
     final classifierState = ref.read(classifierProvider).valueOrNull;
@@ -74,6 +116,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         data: (state) => _BodyContent(
           state: state,
           hintLabels: ref.read(classifierProvider.notifier).labels,
+          onTapImage: () => _pickImage(ImageSource.camera),
+          onRefresh: () async {
+            final image = ref
+                .read(classifierProvider)
+                .valueOrNull
+                ?.selectedImage;
+            if (image != null) {
+              final topResult = await ref
+                  .read(classifierProvider.notifier)
+                  .classify(image);
+              if (!mounted || topResult == null) return;
+              _speak(topResult.label, isUnknown: topResult.isUnknown);
+            }
+          },
+          onReplay: () {
+            final result = ref.read(classifierProvider).valueOrNull?.topResult;
+            if (result != null) {
+              _speak(result.label, isUnknown: result.isUnknown);
+            }
+          },
         ),
       ),
       bottomNavigationBar: classifierAsync.maybeWhen(
@@ -99,18 +161,9 @@ class _AppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: const Color(0xFF006A4E),
       foregroundColor: Colors.white,
       elevation: 0,
-      title: const Row(
-        children: [
-          Text(
-            'à§³',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(width: 8),
-          Text(
-            'Taka Identifier',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-          ),
-        ],
+      title: const Text(
+        'TakaID',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
       ),
       actions: [
         if (isLoading)
@@ -190,40 +243,55 @@ class _ModelErrorView extends StatelessWidget {
 class _BodyContent extends StatelessWidget {
   final ClassifierState state;
   final List<String> hintLabels;
+  final VoidCallback onTapImage;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onReplay;
 
-  const _BodyContent({required this.state, required this.hintLabels});
+  const _BodyContent({
+    required this.state,
+    required this.hintLabels,
+    required this.onTapImage,
+    required this.onRefresh,
+    required this.onReplay,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _ImageCard(image: state.selectedImage),
-          const SizedBox(height: 16),
-          if (state.isClassifying)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                children: [
-                  CircularProgressIndicator(color: Color(0xFF006A4E)),
-                  SizedBox(height: 12),
-                  Text(
-                    'Identifying banknoteâ€¦',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
+    return RefreshIndicator(
+      color: const Color(0xFF006A4E),
+      onRefresh: onRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ImageCard(image: state.selectedImage, onTap: onTapImage),
+            const SizedBox(height: 16),
+            if (state.isClassifying)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF006A4E)),
+                    SizedBox(height: 12),
+                    Text(
+                      'Identifying banknote…',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          if (!state.isClassifying && state.topResult != null) ...[
-            _TopResultCard(state: state),
-            const SizedBox(height: 12),
-            if (state.topK.length > 1) _OtherResultsCard(state: state),
+            if (!state.isClassifying && state.topResult != null) ...[
+              _TopResultCard(state: state, onReplay: onReplay),
+              const SizedBox(height: 12),
+              if (!state.topResult!.isUnknown && state.topK.length > 1)
+                _OtherResultsCard(state: state),
+            ],
+            if (!state.isClassifying && state.selectedImage == null)
+              _HintChips(labels: hintLabels),
           ],
-          if (!state.isClassifying && state.selectedImage == null)
-            _HintChips(labels: hintLabels),
-        ],
+        ),
       ),
     );
   }
@@ -233,7 +301,8 @@ class _BodyContent extends StatelessWidget {
 
 class _ImageCard extends StatelessWidget {
   final File? image;
-  const _ImageCard({this.image});
+  final VoidCallback onTap;
+  const _ImageCard({this.image, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -244,26 +313,32 @@ class _ImageCard extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: 16 / 9,
         child: image != null
-            ? Image.file(image!, fit: BoxFit.cover)
-            : Container(
-                color: const Color(0xFFE8F5E9),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 64,
-                      color: Colors.green.shade300,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Select or capture a banknote image',
-                      style: TextStyle(
-                        color: Colors.green.shade600,
-                        fontSize: 15,
+            ? GestureDetector(
+                onTap: onTap,
+                child: Image.file(image!, fit: BoxFit.cover),
+              )
+            : InkWell(
+                onTap: onTap,
+                child: Container(
+                  color: const Color(0xFFE8F5E9),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.add_photo_alternate_outlined,
+                        size: 64,
+                        color: Colors.green.shade300,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        'Tap to open camera',
+                        style: TextStyle(
+                          color: Colors.green.shade600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
       ),
@@ -275,11 +350,71 @@ class _ImageCard extends StatelessWidget {
 
 class _TopResultCard extends StatelessWidget {
   final ClassifierState state;
-  const _TopResultCard({required this.state});
+  final VoidCallback onReplay;
+  const _TopResultCard({required this.state, required this.onReplay});
 
   @override
   Widget build(BuildContext context) {
     final result = state.topResult!;
+
+    // ── Unknown / not a banknote ──────────────────────────────────────────
+    if (result.isUnknown) {
+      return Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: Colors.red.shade50,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.do_not_disturb_alt_outlined,
+                  color: Colors.red.shade700,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Not a Banknote',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'No Bangladeshi banknote was detected.\nTry a clearer, well-lit image.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.volume_up_rounded, color: Colors.red.shade400),
+                tooltip: 'Replay voice',
+                onPressed: onReplay,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── Normal result ─────────────────────────────────────────────────────
     final isHigh = result.confidence >= 0.75;
 
     return Card(
@@ -345,6 +480,14 @@ class _TopResultCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.volume_up_rounded,
+                    color: Color(0xFF006A4E),
+                  ),
+                  tooltip: 'Replay voice',
+                  onPressed: onReplay,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -356,7 +499,7 @@ class _TopResultCard extends StatelessWidget {
             if (!isHigh) ...[
               const SizedBox(height: 8),
               const Text(
-                'âš ï¸  Low confidence â€” try a clearer image',
+                '⚠️  Low confidence — try a clearer image',
                 style: TextStyle(color: Colors.orange, fontSize: 12),
               ),
             ],

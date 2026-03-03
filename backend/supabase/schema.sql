@@ -1,6 +1,6 @@
 -- ============================================================
--- Taka ID — Supabase schema
--- Run this once in: Supabase Dashboard → SQL Editor → New query
+-- Taka ID — Supabase schema  (idempotent — safe to re-run)
+-- Run in: Supabase Dashboard → SQL Editor → New query
 -- ============================================================
 
 -- ── 1. Table ──────────────────────────────────────────────────────────────────
@@ -12,44 +12,60 @@ create table if not exists public.history_records (
   top_results      jsonb       not null default '[]'::jsonb,
   image_url        text,
   local_image_path text        not null default '',
-  -- When the scan actually happened on the device (sent by the app).
   timestamp        timestamptz not null default now(),
-  -- Server-side audit columns.
   created_at       timestamptz not null default now()
 );
 
--- Index: fastest path for the default "newest first" listing.
+-- ── 2. Add user_id (works for both fresh installs and existing tables) ────────
+-- Adding as nullable first so it never fails on tables that already have rows.
+alter table public.history_records
+  add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
+-- ── 3. Indexes ────────────────────────────────────────────────────────────────
+
 create index if not exists history_records_timestamp_idx
   on public.history_records (timestamp desc);
 
--- ── 2. Row Level Security ─────────────────────────────────────────────────────
+create index if not exists history_records_user_id_idx
+  on public.history_records (user_id);
+
+-- ── 4. Row Level Security ─────────────────────────────────────────────────────
 -- The Express backend uses the SERVICE ROLE key which bypasses RLS entirely.
--- Enable RLS anyway so direct client access (e.g. Supabase Studio) is safe.
+-- RLS policies scope direct Studio / client access to the owning user.
 
 alter table public.history_records enable row level security;
 
--- No client-facing policies are needed for this project because all access
--- goes through the Express backend.  Add user-scoped policies here if you
--- add authentication later.
+-- Drop first so re-running this script never raises "policy already exists".
+drop policy if exists "Users read own records"   on public.history_records;
+drop policy if exists "Users insert own records" on public.history_records;
+drop policy if exists "Users delete own records" on public.history_records;
 
--- ── 3. Storage bucket ─────────────────────────────────────────────────────────
--- Creates a PUBLIC bucket called "banknotes" for storing banknote images.
--- Images get a permanent public URL usable by the Flutter app.
---
--- Alternatively create the bucket in:
---   Supabase Dashboard → Storage → New bucket → name: banknotes → Public ✓
+create policy "Users read own records"
+  on public.history_records for select
+  using (auth.uid() = user_id);
+
+create policy "Users insert own records"
+  on public.history_records for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users delete own records"
+  on public.history_records for delete
+  using (auth.uid() = user_id);
+
+-- ── 5. Storage bucket ─────────────────────────────────────────────────────────
 
 insert into storage.buckets (id, name, public)
 values ('banknotes', 'banknotes', true)
 on conflict (id) do nothing;
 
--- Allow public read access to every file in the bucket.
+drop policy if exists "Public read banknotes"        on storage.objects;
+drop policy if exists "Service role manage banknotes" on storage.objects;
+
 create policy "Public read banknotes"
   on storage.objects for select
   using (bucket_id = 'banknotes');
 
--- Allow the service role (backend) to upload / delete objects.
--- The service role already has full access, but this policy documents intent.
 create policy "Service role manage banknotes"
   on storage.objects for all
   using (bucket_id = 'banknotes');
+

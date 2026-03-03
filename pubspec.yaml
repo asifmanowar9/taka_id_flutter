@@ -42,6 +42,13 @@ dependencies:
   # Date formatting
   intl: ^0.20.1
 
+  # Authentication + session management (Supabase Auth)
+  supabase_flutter: ^2.8.4
+
+  # Local SQLite persistence for offline support
+  sqflite: ^2.4.1
+  path: ^1.9.1
+
   # On-device TFLite inference
   tflite_flutter: ^0.11.0
 
@@ -50,6 +57,7 @@ dependencies:
 
   # Image decoding and preprocessing (resize, pixel access)
   image: ^4.2.0
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

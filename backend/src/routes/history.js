@@ -3,12 +3,16 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
+const verifyToken = require('../middleware/verifyToken');
 const {
   createRecord,
   getHistory,
   getRecord,
   deleteRecord,
 } = require('../controllers/historyController');
+
+// All history routes require a valid Supabase JWT — verifyToken sets req.user.
+router.use(verifyToken);
 
 // POST   /api/history          — save a new classification result + image
 router.post('/', upload.single('image'), createRecord);

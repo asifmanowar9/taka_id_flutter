@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/history_provider.dart';
 import '../widgets/history_tile.dart';
+import 'auth_screen.dart';
 import 'detail_screen.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -10,6 +13,9 @@ class HistoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Gate: unauthenticated users see a login prompt instead of the list.
+    if (ref.watch(currentUserProvider) == null) return const _AuthPrompt();
+
     final historyAsync = ref.watch(historyProvider);
 
     return Scaffold(
@@ -22,6 +28,11 @@ class HistoryScreen extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+            onPressed: () => Supabase.instance.client.auth.signOut(),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -141,6 +152,65 @@ class _ErrorView extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Auth prompt ───────────────────────────────────────────────────────────────────────────────
+
+class _AuthPrompt extends StatelessWidget {
+  const _AuthPrompt();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF006A4E),
+        foregroundColor: Colors.white,
+        title: const Text(
+          'History',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 72, color: Colors.grey.shade300),
+              const SizedBox(height: 24),
+              Text(
+                'Sign in to view your history',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your scan history is saved to your account\nand synced across devices.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+              ),
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                ),
+                icon: const Icon(Icons.login),
+                label: const Text('Sign in / Sign up'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF006A4E),
+                  minimumSize: const Size(200, 48),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

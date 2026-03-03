@@ -13,13 +13,21 @@ class ApiService {
   // Production        →  https://your-domain.com/api
   static const String baseUrl = 'http://10.0.2.2:3000/api';
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
-    ),
-  );
+  final Dio _dio;
+
+  /// [authToken] is the Supabase JWT access token. When provided it is sent
+  /// as `Authorization: Bearer <token>` on every request.
+  ApiService({String? authToken})
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {
+            if (authToken != null) 'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
 
   // ── History CRUD ──────────────────────────────────────────────────────────
 

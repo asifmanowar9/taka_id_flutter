@@ -8,7 +8,15 @@ class ClassificationResult {
   final String label;
   final double confidence;
 
-  const ClassificationResult({required this.label, required this.confidence});
+  /// True when confidence is below [BanknoteClassifier.confidenceThreshold].
+  /// The image is likely not a Bangladeshi banknote.
+  final bool isUnknown;
+
+  const ClassificationResult({
+    required this.label,
+    required this.confidence,
+    this.isUnknown = false,
+  });
 
   /// Confidence as a human-readable percentage string, e.g. "97.3%"
   String get confidencePercent => '${(confidence * 100).toStringAsFixed(1)}%';
@@ -28,6 +36,10 @@ class BanknoteClassifier {
   /// Model input spatial size — confirmed from convert_model.py output:
   ///   Model input shape: (None, 224, 224, 3)
   static const int inputSize = 224;
+
+  /// Predictions below this threshold are reported as "Not a Banknote".
+  /// Tune this value if legitimate notes are rejected or non-notes slip through.
+  static const double confidenceThreshold = 0.70;
 
   /// The model contains a built-in Rescaling layer that divides pixels by 255.
   /// Therefore the app must feed RAW [0, 255] float32 values — do NOT
@@ -113,6 +125,13 @@ class BanknoteClassifier {
     }
 
     final label = maxIdx < _labels.length ? _labels[maxIdx] : 'Class $maxIdx';
+    if (maxProb < confidenceThreshold) {
+      return ClassificationResult(
+        label: 'Not a Banknote',
+        confidence: maxProb,
+        isUnknown: true,
+      );
+    }
     return ClassificationResult(label: label, confidence: maxProb);
   }
 
@@ -152,7 +171,19 @@ class BanknoteClassifier {
       ),
     );
     indexed.sort((a, b) => b.confidence.compareTo(a.confidence));
-    return indexed.take(k).toList();
+    final topList = indexed.take(k).toList();
+
+    // If the best match is below the threshold, treat as unknown.
+    if (topList.isNotEmpty && topList.first.confidence < confidenceThreshold) {
+      return [
+        ClassificationResult(
+          label: 'Not a Banknote',
+          confidence: topList.first.confidence,
+          isUnknown: true,
+        ),
+      ];
+    }
+    return topList;
   }
 
   /// Release native resources.

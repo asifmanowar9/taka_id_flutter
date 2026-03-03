@@ -25,6 +25,7 @@ exports.createRecord = async (req, res) => {
     const { data, error } = await supabase
       .from(TABLE)
       .insert({
+        user_id: req.user.id,
         label,
         confidence: parseFloat(confidence),
         top_results: parsedTopResults,
@@ -44,11 +45,12 @@ exports.createRecord = async (req, res) => {
 };
 
 // ── GET /api/history ──────────────────────────────────────────────────────────
-exports.getHistory = async (_req, res) => {
+exports.getHistory = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from(TABLE)
       .select('*')
+      .eq('user_id', req.user.id)
       .order('timestamp', { ascending: false });
 
     if (error) throw error;
@@ -66,6 +68,7 @@ exports.getRecord = async (req, res) => {
       .from(TABLE)
       .select('*')
       .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
       .single();
 
     if (error) {
@@ -89,6 +92,7 @@ exports.deleteRecord = async (req, res) => {
       .from(TABLE)
       .select('image_url')
       .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
       .single();
 
     if (fetchError) {
@@ -101,7 +105,8 @@ exports.deleteRecord = async (req, res) => {
     const { error } = await supabase
       .from(TABLE)
       .delete()
-      .eq('id', req.params.id);
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
 
     if (error) throw error;
 

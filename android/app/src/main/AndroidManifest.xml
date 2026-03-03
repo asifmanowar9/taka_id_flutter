@@ -12,7 +12,7 @@
         android:maxSdkVersion="32" />
 
     <application
-        android:label="taka_id"
+        android:label="TakaID"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -1,9 +1,9 @@
-2 Taka
-5 Taka
 10 Taka
-20 Taka
-50 Taka
 100 Taka
-200 Taka
-500 Taka
 1000 Taka
+2 Taka
+20 Taka
+200 Taka
+5 Taka
+50 Taka
+500 Taka
