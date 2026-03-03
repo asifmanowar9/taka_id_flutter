@@ -118,17 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           hintLabels: ref.read(classifierProvider.notifier).labels,
           onTapImage: () => _pickImage(ImageSource.camera),
           onRefresh: () async {
-            final image = ref
-                .read(classifierProvider)
-                .valueOrNull
-                ?.selectedImage;
-            if (image != null) {
-              final topResult = await ref
-                  .read(classifierProvider.notifier)
-                  .classify(image);
-              if (!mounted || topResult == null) return;
-              _speak(topResult.label, isUnknown: topResult.isUnknown);
-            }
+            ref.read(classifierProvider.notifier).reset();
           },
           onReplay: () {
             final result = ref.read(classifierProvider).valueOrNull?.topResult;
