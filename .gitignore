@@ -26,6 +26,9 @@ migrate_working_dir/
 # Supabase credentials — never commit real keys
 lib/config/supabase_config.dart
 
+# Trained TFLite model — large binary, keep off GitHub
+assets/model/*.tflite
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

@@ -34,21 +34,29 @@ class BanknoteClassifier {
   static const String _labelsAsset = 'assets/labels.txt';
 
   /// Model input spatial size — confirmed from convert_model.py output:
-  ///   Model input shape: (None, 224, 224, 3)
-  static const int inputSize = 224;
+  ///   Model input shape: (None, 128, 128, 3)
+  static const int inputSize = 128;
 
   /// Predictions below this threshold are reported as "Not a Banknote".
   /// Tune this value if legitimate notes are rejected or non-notes slip through.
-  static const double confidenceThreshold = 0.70;
+  static const double confidenceThreshold = 0.40;
 
-  /// The model contains a built-in Rescaling layer that divides pixels by 255.
-  /// Therefore the app must feed RAW [0, 255] float32 values — do NOT
-  /// normalise again here, or inference will be wrong.
-  static const bool modelHasBuiltInRescaling = true;
+  /// No built-in preprocessing layer in the model graph. Preprocessing is
+  /// applied in-app. Set the appropriate flag below based on training pipeline.
+  static const bool modelHasBuiltInRescaling = false;
 
   /// Only relevant when [modelHasBuiltInRescaling] is false.
   /// Set to true for MobileNet-style [-1, 1] normalisation.
   static const bool useMobileNetNormalization = false;
+
+  /// Set to true when using a ResNet50 model that does NOT have a built-in
+  /// preprocessing layer. Applies standard Keras ResNet50 `preprocess_input`
+  /// (caffe mode): converts RGB → BGR and subtracts ImageNet channel means
+  /// [B=103.939, G=116.779, R=123.68]. Output range is roughly [-128, 151].
+  ///
+  /// If your ResNet50 was trained WITH a built-in Rescaling/preprocessing
+  /// layer, keep this false and set [modelHasBuiltInRescaling] to true instead.
+  static const bool useResNet50Preprocessing = false;
 
   Interpreter? _interpreter;
   List<String> _labels = [];
@@ -115,6 +123,17 @@ class BanknoteClassifier {
 
     // ── 6. Pick argmax ─────────────────────────────────────────────────
     final probabilities = output[0];
+
+    // ── DEBUG: print all class probabilities to console ────────────────
+    for (int i = 0; i < probabilities.length; i++) {
+      final lbl = i < _labels.length ? _labels[i] : 'Class $i';
+      // ignore: avoid_print
+      print(
+        '[Classifier] $lbl: ${(probabilities[i] * 100).toStringAsFixed(2)}%',
+      );
+    }
+    // ── END DEBUG ───────────────────────────────────────────────────────
+
     int maxIdx = 0;
     double maxProb = probabilities[0];
     for (int i = 1; i < probabilities.length; i++) {
@@ -163,6 +182,15 @@ class BanknoteClassifier {
     _interpreter!.run(input, output);
 
     final probs = output[0];
+
+    // ── DEBUG: print all class probabilities to console ────────────────
+    for (int i = 0; i < probs.length; i++) {
+      final lbl = i < _labels.length ? _labels[i] : 'Class $i';
+      // ignore: avoid_print
+      print('[Classifier] $lbl: ${(probs[i] * 100).toStringAsFixed(2)}%');
+    }
+    // ── END DEBUG ───────────────────────────────────────────────────────
+
     final indexed = List.generate(
       probs.length,
       (i) => ClassificationResult(
@@ -208,6 +236,10 @@ class BanknoteClassifier {
           if (modelHasBuiltInRescaling) {
             // Model has a Rescaling layer — pass raw [0, 255] float32 values.
             return [r, g, b];
+          } else if (useResNet50Preprocessing) {
+            // ResNet50 caffe-mode: RGB → BGR, subtract ImageNet channel means.
+            // Matches keras.applications.resnet50.preprocess_input behaviour.
+            return [b - 103.939, g - 116.779, r - 123.68];
           } else if (useMobileNetNormalization) {
             // MobileNet: [0,255] → [-1, 1]
             return [(r / 127.5) - 1.0, (g / 127.5) - 1.0, (b / 127.5) - 1.0];
