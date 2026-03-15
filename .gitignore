@@ -23,8 +23,8 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Supabase credentials — never commit real keys
-lib/config/supabase_config.dart
+# Supabase credentials — now injected via --dart-define in build.sh
+# (safe to commit supabase_config.dart since it contains no secrets)
 
 # Trained TFLite model — large binary, keep off GitHub
 assets/model/*.tflite
