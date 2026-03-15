@@ -1,7 +1,7 @@
 {
   "framework": null,
-  "installCommand": "git clone https://github.com/flutter/flutter.git -b stable --depth 1; flutter/bin/flutter config --enable-web; flutter/bin/flutter pub get",
-  "buildCommand": "flutter/bin/flutter build web --release",
+  "installCommand": "export FLUTTER_ALLOW_ROOT=1; git clone https://github.com/flutter/flutter.git -b stable --depth 1; export PATH=$PWD/flutter/bin:$PATH; flutter config --enable-web; flutter pub get",
+  "buildCommand": "export FLUTTER_ALLOW_ROOT=1; export PATH=$PWD/flutter/bin:$PATH; flutter build web --release",
   "outputDirectory": "build/web",
   "cleanUrls": true,
   "rewrites": [
