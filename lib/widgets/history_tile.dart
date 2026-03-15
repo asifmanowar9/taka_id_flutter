@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/classification_record.dart';
+import '../utils/local_image_provider.dart';
 
 /// A dismissible list tile for a single [ClassificationRecord].
 /// Swipe right-to-left to delete.
@@ -172,13 +171,11 @@ class _Thumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasLocal =
-        record.localImagePath.isNotEmpty &&
-        File(record.localImagePath).existsSync();
+    final provider = localImageProvider(record.localImagePath);
 
     Widget child;
-    if (hasLocal) {
-      child = Image.file(File(record.localImagePath), fit: BoxFit.cover);
+    if (provider != null) {
+      child = Image(image: provider, fit: BoxFit.cover);
     } else if (record.imageUrl != null) {
       child = Image.network(
         record.imageUrl!,

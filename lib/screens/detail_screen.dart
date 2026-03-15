@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../models/classification_record.dart';
 import '../providers/history_provider.dart';
+import '../utils/local_image_provider.dart';
 import '../widgets/confidence_bar.dart';
 
 class DetailScreen extends ConsumerWidget {
@@ -180,9 +179,7 @@ class DetailScreen extends ConsumerWidget {
   }
 
   SliverAppBar _buildSliverAppBar(BuildContext context, WidgetRef ref) {
-    final hasLocal =
-        record.localImagePath.isNotEmpty &&
-        File(record.localImagePath).existsSync();
+    final provider = localImageProvider(record.localImagePath);
 
     return SliverAppBar(
       expandedHeight: 280,
@@ -197,8 +194,8 @@ class DetailScreen extends ConsumerWidget {
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: hasLocal
-            ? Image.file(File(record.localImagePath), fit: BoxFit.cover)
+        background: provider != null
+            ? Image(image: provider, fit: BoxFit.cover)
             : record.imageUrl != null
             ? Image.network(
                 record.imageUrl!,

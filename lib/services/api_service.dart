@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/classification_record.dart';
 
@@ -35,7 +35,7 @@ class ApiService {
   /// Returns the saved record with its server-assigned id and imageUrl.
   Future<ClassificationRecord> saveRecord(
     ClassificationRecord record,
-    File imageFile,
+    XFile imageFile,
   ) async {
     final formData = FormData.fromMap({
       'label': record.label,
@@ -46,8 +46,8 @@ class ApiService {
       ),
       'timestamp': record.timestamp.toIso8601String(),
       'localImagePath': record.localImagePath,
-      'image': await MultipartFile.fromFile(
-        imageFile.path,
+      'image': MultipartFile.fromBytes(
+        await imageFile.readAsBytes(),
         filename: 'banknote_${DateTime.now().millisecondsSinceEpoch}.jpg',
       ),
     });

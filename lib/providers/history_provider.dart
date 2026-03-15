@@ -1,6 +1,8 @@
-import 'dart:io';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/classification_record.dart';
 import '../services/api_service.dart';
@@ -64,9 +66,11 @@ class HistoryNotifier extends AsyncNotifier<List<ClassificationRecord>> {
   Future<void> addRecord({
     required ClassificationResult topResult,
     required List<ClassificationResult> topK,
-    required File imageFile,
+    required XFile imageFile,
   }) async {
     final db = ref.read(localDbProvider);
+
+    final localPath = await _resolveLocalImagePath(imageFile);
 
     final localRecord = ClassificationRecord(
       label: topResult.label,
@@ -74,7 +78,7 @@ class HistoryNotifier extends AsyncNotifier<List<ClassificationRecord>> {
       topResults: topK
           .map((r) => TopResult(label: r.label, confidence: r.confidence))
           .toList(),
-      localImagePath: imageFile.path,
+      localImagePath: localPath,
       timestamp: DateTime.now(),
       isSynced: false,
     );
@@ -164,6 +168,12 @@ class HistoryNotifier extends AsyncNotifier<List<ClassificationRecord>> {
       // Backend unreachable — still show whatever is in sqflite.
       state = AsyncData(await db.getAllRecords());
     }
+  }
+
+  Future<String> _resolveLocalImagePath(XFile imageFile) async {
+    if (!kIsWeb) return imageFile.path;
+    final bytes = await imageFile.readAsBytes();
+    return 'data:image/jpeg;base64,${base64Encode(bytes)}';
   }
 }
 

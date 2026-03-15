@@ -1,13 +1,12 @@
-import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/classifier.dart';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 class ClassifierState {
-  final File? selectedImage;
+  final XFile? selectedImage;
   final ClassificationResult? topResult;
   final List<ClassificationResult> topK;
   final bool isClassifying;
@@ -20,7 +19,7 @@ class ClassifierState {
   });
 
   ClassifierState copyWith({
-    File? selectedImage,
+    XFile? selectedImage,
     ClassificationResult? topResult,
     List<ClassificationResult>? topK,
     bool? isClassifying,
@@ -52,7 +51,7 @@ class ClassifierNotifier extends AsyncNotifier<ClassifierState> {
 
   /// Run TFLite inference on [imageFile].
   /// Updates the provider state and returns the top result (or null on error).
-  Future<ClassificationResult?> classify(File imageFile) async {
+  Future<ClassificationResult?> classify(XFile imageFile) async {
     final current = state.valueOrNull;
     if (current == null) return null;
 

@@ -1,5 +1,6 @@
-﻿import 'dart:io';
+﻿import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -7,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../providers/classifier_provider.dart';
 import '../providers/history_provider.dart';
+import '../utils/local_image_provider.dart';
 import '../widgets/app_loader.dart';
 import '../widgets/confidence_bar.dart';
 import 'history_screen.dart';
@@ -68,10 +70,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     if (picked == null || !mounted) return;
 
-    final file = File(picked.path);
     final topResult = await ref
         .read(classifierProvider.notifier)
-        .classify(file);
+        .classify(picked);
 
     if (!mounted || topResult == null) return;
 
@@ -88,7 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .addRecord(
           topResult: topResult,
           topK: classifierState?.topK ?? [],
-          imageFile: file,
+          imageFile: picked,
         );
   }
 
@@ -302,7 +303,7 @@ class _BodyContent extends StatelessWidget {
 // â”€â”€ Image card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _ImageCard extends StatelessWidget {
-  final File? image;
+  final XFile? image;
   final VoidCallback onTap;
   const _ImageCard({this.image, required this.onTap});
 
@@ -329,7 +330,7 @@ class _ImageCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.file(image!, fit: BoxFit.cover),
+                      _SelectedImage(image: image!),
                       Positioned(
                         bottom: 0,
                         left: 0,
@@ -437,6 +438,33 @@ class _ImageCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _SelectedImage extends StatelessWidget {
+  final XFile image;
+
+  const _SelectedImage({required this.image});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return FutureBuilder<Uint8List>(
+        future: image.readAsBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.memory(snapshot.data!, fit: BoxFit.cover);
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    }
+
+    final provider = localImageProvider(image.path);
+    if (provider == null) {
+      return const Center(child: Icon(Icons.broken_image_outlined));
+    }
+    return Image(image: provider, fit: BoxFit.cover);
   }
 }
 

@@ -1,11 +1,32 @@
-# TakaID — Bangladeshi Banknote Identifier
+﻿# TakaID — Bangladeshi Banknote Identifier
 
 A Flutter application that **identifies Bangladeshi banknotes on-device** using a TFLite deep learning model and reads the result aloud in Bengali. Scan history is persisted locally via SQLite and synced to a Node.js/Express backend backed by Supabase (PostgreSQL + Storage).
 
 ---
 
+## Screenshots
+
+> Place your screenshots inside `assets/screenshots/` and update the paths below.
+
+<p align="center">
+  <img src="assets/screenshots/home_idle.png" width="220" alt="Home screen — idle" />
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/home_result.png" width="220" alt="Home screen — scan result" />
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/history.png" width="220" alt="History screen" />
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/detail.png" width="220" alt="Detail view" />
+  &nbsp;&nbsp;
+  <img src="assets/screenshots/auth.png" width="220" alt="Login / Sign-up" />
+</p>
+
+---
+
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
