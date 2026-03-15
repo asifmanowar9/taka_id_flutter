@@ -17,4 +17,6 @@ export PATH="$PWD/flutter/bin:$PATH"
 flutter config --enable-web
 flutter doctor -v
 flutter pub get
-flutter build web --release --verbose
+flutter build web --release --verbose \
+  --dart-define=SUPABASE_URL="${SUPABASE_URL:-}" \
+  --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
